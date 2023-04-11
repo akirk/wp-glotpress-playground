@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>WordPress Playground</title>
+	</head>
+	<body>
+		<iframe id="wp" style="width: 1200px; height: 800px"></iframe>
+		<script type="importmap">
+			{
+				"imports": {
+					"@wp-playground/client": "https://unpkg.com/@wp-playground/client/index.js"
+				}
+			}
+		</script>
+		<script type="module">
+			import { connectPlayground, login, installPlugin, installPluginsFromDirectory } from '@wp-playground/client';
+
+			const client = await connectPlayground(
+				document.getElementById('wp'),
+				{ loadRemote: 'https://playground.wordpress.net/remote.html' }
+			);
+			await client.isReady();
+			await login(client, 'admin', 'password');
+			await installPluginsFromDirectory( client, ['glotpress'] );
+			// await fetch( 'https://github.com/GlotPress/GlotPress/archive/refs/heads/local.zip' )
+			  // .then(response => response.blob())
+			  // .then(blob => new File([blob], 'local.zip', { type: blob.type } ) )
+			  // .then(file => installPlugin( client, file ) )
+			  // .then(() => client.goTo('/wp-admin/admin.php?page=glotpress') );
+
+			const response = await client.run({
+				code: '<?php echo "Hi!"; ',
+			});
+			console.log(response.text);
+		</script>
+	</body>
+</html>
