@@ -56,7 +56,17 @@ if ( isset( $_GET['plugin'] ) ) {
 				document.getElementById('wp'),
 				{ loadRemote: 'https://playground.wordpress.net/remote.html' }
 			);
+			await client.onDownloadProgress(
+				progress.partialObserver(
+					20,
+					'Preparing WordPress...'
+				)
+			);
 			const lang = '<?php echo $lang; ?>';
+			progress.partialObserver(
+				25,
+				'Logging in...'
+			);
 			await client.isReady();
 
 			await login(client, 'admin', 'password');
@@ -71,6 +81,10 @@ if ( isset( $_GET['plugin'] ) ) {
 				'wp': '&filters[term]=wp-admin',
 				'wp/admin': '&filters[term]=wp-admin',
 			};
+			progress.partialObserver(
+				30,
+				'Downloading languages...'
+			);
 
 			for ( const path in languages ) {
 				for ( const format of [ 'po', 'mo' ] ) {
@@ -94,7 +108,15 @@ ENDP
 );
 			`});
 			console.log(response.text);
+			progress.partialObserver(
+				50,
+				'Downloading plugins...'
+			);
 			await installPluginsFromDirectory( client, ['glotpress-local'<?php if ( $plugin ) echo ", '$plugin'"; ?>] );
+			progress.partialObserver(
+				75,
+				'Making plugins translatable...'
+			);
 			<?php if ( $plugin || isset( $_GET['wp'] ) ) : ?>
 			response = await client.run({
 				code: '<' + '?' + 'php ' + `
