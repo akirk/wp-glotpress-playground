@@ -21,27 +21,52 @@
 			);
 			await client.isReady();
 			await login(client, 'admin', 'password');
-			await installPluginsFromDirectory( client, ['glotpress-local'] );
-			await client.mkdirTree('/wordpress/wp-content/languages');
+			await client.mkdirTree('/wordpress/wp-content/languages/plugins');
 
 			await fetch( '/translate-proxy?url=' + escape( 'https://translate.wordpress.org/projects/wp/dev/de/default/export-translations?format=po' ) )
-			  .then(response => client.writeFile( '/wordpress/wp-content/languages/de_DE.po', new Uint8Array(response.arrayBuffer()) ) );
+			  .then(response => response.arrayBuffer() )
+			  .then(response => client.writeFile( '/wordpress/wp-content/languages/de_DE.po', new Uint8Array(response) ) );
 			await fetch( '/translate-proxy?url=' + escape( 'https://translate.wordpress.org/projects/wp/dev/de/default/export-translations?format=mo' ) )
-			  .then(response => client.writeFile( '/wordpress/wp-content/languages/de_DE.mo', new Uint8Array(response.arrayBuffer()) ) );
+			  .then(response => response.arrayBuffer() )
+			  .then(response => client.writeFile( '/wordpress/wp-content/languages/de_DE.mo', new Uint8Array(response) ) );
 			await fetch( '/translate-proxy?url=' + escape( 'https://translate.wordpress.org/projects/wp/dev/admin/de/default/export-translations?format=po' ) )
-			  .then(response => client.writeFile( '/wordpress/wp-content/languages/admin-de_DE.po', new Uint8Array(response.arrayBuffer()) ) );
+			  .then(response => response.arrayBuffer() )
+			  .then(response => client.writeFile( '/wordpress/wp-content/languages/admin-de_DE.po', new Uint8Array(response) ) );
 			await fetch( '/translate-proxy?url=' + escape( 'https://translate.wordpress.org/projects/wp/dev/admin/de/default/export-translations?format=mo' ) )
-			  .then(response => client.writeFile( '/wordpress/wp-content/languages/admin-de_DE.mo', new Uint8Array(response.arrayBuffer()) ) );
+			  .then(response => response.arrayBuffer() )
+			  .then(response => client.writeFile( '/wordpress/wp-content/languages/admin-de_DE.mo', new Uint8Array(response) ) );
+			await fetch( '/translate-proxy?url=' + escape( 'https://translate.wordpress.org/projects/wp-plugins/glotpress/dev/de/default/export-translations?format=po' ) )
+			  .then(response => response.arrayBuffer() )
+			  .then(response => client.writeFile( '/wordpress/wp-content/languages/plugins/glotpress-de_DE.po', new Uint8Array(response) ) );
+			await fetch( '/translate-proxy?url=' + escape( 'https://translate.wordpress.org/projects/wp-plugins/glotpress/dev/de/default/export-translations?format=mo' ) )
+			  .then(response => response.arrayBuffer() )
+			  .then(response => client.writeFile( '/wordpress/wp-content/languages/plugins/glotpress-de_DE.mo', new Uint8Array(response) ) );
+			await fetch( '/translate-proxy?url=' + escape( 'https://translate.wordpress.org/projects/wp-plugins/friends/dev/de/default/export-translations?format=po' ) )
+			  .then(response => response.arrayBuffer() )
+			  .then(response => client.writeFile( '/wordpress/wp-content/languages/plugins/friends-de_DE.po', new Uint8Array(response) ) );
+			await fetch( '/translate-proxy?url=' + escape( 'https://translate.wordpress.org/projects/wp-plugins/friends/dev/de/default/export-translations?format=mo' ) )
+			  .then(response => response.arrayBuffer() )
+			  .then(response => client.writeFile( '/wordpress/wp-content/languages/plugins/friends-de_DE.mo', new Uint8Array(response) ) );
 			response = await client.run({
 			                code: `<?php
-include "wordpress/wp-load.php";
-update_option("WPLANG","de_DE");
-update_option("permalink_structure","/%year%/%monthnum%/%day%/%postname%/");
-update_option("gp_enable_local_translation",1);
-update_option("gp_enable_inline_translation",1);
+include 'wordpress/wp-load.php';
+update_option('WPLANG', 'de_DE');
+update_option('permalink_structure','/%year%/%monthnum%/%day%/%postname%/');
+update_option('gp_enable_local_translation', 1);
+update_option('gp_enable_inline_translation', 1);
+file_put_contents('/wordpress/wp-content/mu-plugins/gp-sqlite.php',<<<'ENDP'
+<?php
+add_filter('query', function( $query ) {
+	return str_replace( ' BINARY ', ' ', $query);
+});
+ENDP
+);
+readfile('/wordpress/wp-content/mu-plugins/gp-sqlite.php');
 					            `});
 			console.log(response.text);
-			//await client.goTo('/wp-admin/plugins.php');
+			await installPluginsFromDirectory( client, ['glotpress-local','friends'] );
+// 			await client.goTo('/wp-admin/plugins.php');
+// 			console.log(response.text);
 			await client.goTo('/wp-admin/admin.php?page=local-glotpress');
 		</script>
 	</body>
