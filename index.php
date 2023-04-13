@@ -14,8 +14,12 @@ $allowed_plugins = array(
 	'activitypub' => 'options-general.php?page=activitypub',
 	'friends' => 'admin.php?page=friends',
 	'wordpress-seo' => '',
-	'sierotki' => 'admin.php?page=iworks_orphan_index',
+	'jetpack' => '',
 	'chatrix' => 'admin.php?page=chatrix-settings',
+);
+
+$plugin_names = array(
+	'wordpress-seo' => 'Yoast SEO',
 );
 
 if ( isset( $allowed_languages[ $_GET['lang'] ] ) ) {
@@ -105,7 +109,7 @@ if ( ! empty( $_GET['plugin'] ) ) {
 				<select name="plugin">
 					<option value="<?php echo htmlspecialchars( $slug ); ?>"<?php if ( ! $plugin ) echo ' selected="selected"'; ?>>Just Local GlotPress</option>
 					<?php foreach ( array_keys( $allowed_plugins ) as $slug ) : ?>
-						<option value="<?php echo htmlspecialchars( $slug ); ?>"<?php if ( $plugin === $slug ) echo ' selected="selected"'; ?>><?php echo htmlspecialchars( $slug ); ?></option>
+						<option value="<?php echo htmlspecialchars( $slug ); ?>"<?php if ( $plugin === $slug ) echo ' selected="selected"'; ?>><?php echo htmlspecialchars( isset( $plugin_names[ $slug ] )? $plugin_names[ $slug ] : ucfirst( $slug ) ); ?></option>
 					<?php endforeach; ?>
 				</select>
 			</label>
@@ -147,7 +151,7 @@ if ( ! empty( $_GET['plugin'] ) ) {
 			await login(client, 'admin', 'password');
 			await client.mkdirTree('/wordpress/wp-content/languages/plugins');
 			const languages = {
-				'wp/dev/': '',
+				'wp/dev': '',
 				'wp/dev/admin': 'admin-',
 				'wp-plugins/glotpress/dev': 'plugins/glotpress-',
 				<?php if ( isset( $plugin ) ) echo "'wp-plugins/" . $plugin . "/dev': 'plugins/" . $plugin . "-',"; ?>
@@ -170,10 +174,11 @@ if ( ! empty( $_GET['plugin'] ) ) {
 			response = await client.run({
 				code: '<' + '?' + 'php ' + `
 include 'wordpress/wp-load.php';
-update_option('WPLANG', '<?php echo $lang; ?>');
-update_option('permalink_structure','/%year%/%monthnum%/%day%/%postname%/');
-update_option('gp_enable_local_translation', 1);
-update_option('gp_enable_inline_translation', 1);
+update_option( 'WPLANG', '<?php echo $lang; ?>' );
+update_option( 'permalink_structure','/%year%/%monthnum%/%day%/%postname%/' );
+update_option( 'gp_enable_local_translation', 1 );
+update_option( 'gp_enable_inline_translation', 1 );
+update_user_meta( get_current_user_id(), 'show_welcome_panel', '0' );
 file_put_contents('/wordpress/wp-content/mu-plugins/gp-sqlite.php','<' . '?' . 'php' . PHP_EOL . <<<'ENDP'
 add_filter('query', function( $query ) {
 	return str_replace( ' BINARY ', ' ', $query);
@@ -208,12 +213,12 @@ print_r( GP::$rest->create_local_project( $request ) );
 			`});
 			console.log(response.text);
 			<?php if ( $plugin && $allowed_plugins[$plugin] ) : ?>
-			await client.goTo('/wp-admin/<?php echo $allowed_plugins[$plugin]; ?>');
+			await client.goTo( '/wp-admin/<?php echo $allowed_plugins[$plugin]; ?>' );
 			<?php else: ?>
-			await client.goTo('/wp-admin/');
+			await client.goTo( '/wp-admin/' );
 			<?php endif; ?>
 			<?php else: ?>
-			await client.goTo('/wp-admin/admin.php?page=local-glotpress');
+			await client.goTo( '/wp-admin/admin.php?page=local-glotpress' );
 			<?php endif; ?>
 			progress( 100, 'Finished' );
 		</script>
