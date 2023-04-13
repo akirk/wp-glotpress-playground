@@ -27,7 +27,7 @@ if ( isset( $allowed_languages[ $_GET['lang'] ] ) ) {
 }
 
 
-if ( isset( $_GET['plugin'] ) ) {
+if ( ! empty( $_GET['plugin'] ) ) {
 	if ( isset( $allowed_plugins[ $_GET['plugin'] ] ) ) {
 		$plugin = $_GET['plugin'];
 	} else {
@@ -103,6 +103,7 @@ if ( isset( $_GET['plugin'] ) ) {
 			<label>
 				Plugin:
 				<select name="plugin">
+					<option value="<?php echo htmlspecialchars( $slug ); ?>"<?php if ( ! $plugin ) echo ' selected="selected"'; ?>>Just Local GlotPress</option>
 					<?php foreach ( array_keys( $allowed_plugins ) as $slug ) : ?>
 						<option value="<?php echo htmlspecialchars( $slug ); ?>"<?php if ( $plugin === $slug ) echo ' selected="selected"'; ?>><?php echo htmlspecialchars( $slug ); ?></option>
 					<?php endforeach; ?>
@@ -129,7 +130,6 @@ if ( isset( $_GET['plugin'] ) ) {
 					document.getElementById( 'progress' ).style.display = 'none';
 					return;
 				}
-				document.getElementById( 'progress' ).style.display = 'flex';
 				document.getElementById( 'progressbar' ).style.width = totalPercentage + '%';
 				document.getElementById( 'progresstext' ).textContent = text;
 			}
