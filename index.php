@@ -20,7 +20,7 @@ $allowed_plugins = array(
 	'friends' => 'admin.php?page=friends',
 	'wordpress-seo' => '',
 	'sierotki' => 'admin.php?page=iworks_orphan_index',
-	'chatrix' => '',
+	'chatrix' => 'admin.php?page=chatrix-settings',
 );
 
 if ( isset( $_GET['plugin'] ) ) {
@@ -34,39 +34,82 @@ if ( isset( $_GET['plugin'] ) ) {
 <!DOCTYPE html>
 <html>
 	<head>
-		<title>WordPress Playground</title>
+		<title>WP GlotPress Playground</title>
+		<style>
+			body {
+				font-family: sans-serif;
+			}
+			iframe#wp, div#progress {
+				width: 1200px;
+				height: 800px;
+			}
+			div#progress {
+				position: absolute;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				background: white;
+				margin: .1em;
+				margin-top: 2em;
+				border: 1px solid black;
+			}
+			div#progressinner {
+				width: 600px;
+			}
+			div#progressbarholder {
+				height: 1em;
+				border: 1px solid black;
+			}
+			div#progressbar {
+				width: 0;
+				height: 1em;
+				background: black;
+			}
+			div#progresstext {
+				text-align: center;
+				margin-top: .5em;
+			}
+		</style>
 	</head>
 	<body>
-		<iframe id="wp" style="width: 1200px; height: 800px"></iframe>
+		<div id="progress">
+			<div id="progressinner">
+				<div id="progressbarholder"><div id="progressbar"></div></div>
+				<div id="progresstext"></div>
+			</div>
+		</div>
+		<iframe id="wp"></iframe>
 		<script type="importmap">
 			{
 				"imports": {
-					"@wp-playground/client": "https://unpkg.com/@wp-playground/client/index.js",
-					"@php-wasm/progress": "https://unpkg.com/@php-wasm/progress/index.js"
+					"@wp-playground/client": "https://unpkg.com/@wp-playground/client/index.js"
 				}
 			}
 		</script>
 		<script type="module">
 			import { connectPlayground, login, installPluginsFromDirectory } from '@wp-playground/client';
-			import { ProgressObserver } from '@php-wasm/progress';
 			let response;
-			const progress = new ProgressObserver();
+			let totalPercentage = 0;
+
+			function progress( percentage, text ) {
+				totalPercentage += percentage;
+				if ( totalPercentage >= 100 ) {
+					document.getElementById( 'progress' ).style.display = 'none';
+					return;
+				}
+				document.getElementById( 'progress' ).style.display = 'flex';
+				document.getElementById( 'progressbar' ).style.width = totalPercentage + '%';
+				document.getElementById( 'progresstext' ).textContent = text;
+			}
+			progress( 1, 'Preparing WordPress...' );
 
 			const client = await connectPlayground(
 				document.getElementById('wp'),
 				{ loadRemote: 'https://playground.wordpress.net/remote.html' }
 			);
-			await client.onDownloadProgress(
-				progress.partialObserver(
-					20,
-					'Preparing WordPress...'
-				)
-			);
+
 			const lang = '<?php echo $lang; ?>';
-			progress.partialObserver(
-				25,
-				'Logging in...'
-			);
+			progress( 10, 'Logging in...' );
 			await client.isReady();
 
 			await login(client, 'admin', 'password');
@@ -81,13 +124,12 @@ if ( isset( $_GET['plugin'] ) ) {
 				'wp': '&filters[term]=wp-admin',
 				'wp/admin': '&filters[term]=wp-admin',
 			};
-			progress.partialObserver(
-				30,
-				'Downloading languages...'
-			);
+
+			progress( 5, 'Downloading languages...' );
 
 			for ( const path in languages ) {
 				for ( const format of [ 'po', 'mo' ] ) {
+					progress( 5, 'Downloading languages... (' + languages[path] + '<?php echo $lang; ?>.' + format + ')' );
 					await fetch( '/translate-proxy?url=' + escape( 'https://translate.wordpress.org/projects/' + path + '/<?php echo $lang_with_slug; ?>/export-translations?format=' + format + ( path in filters ? filters[path] : '' ) ) )
 					  .then(response => response.arrayBuffer() )
 					  .then(response => client.writeFile( '/wordpress/wp-content/languages/' + languages[path] + '<?php echo $lang; ?>.' + format, new Uint8Array(response) ) );
@@ -108,15 +150,9 @@ ENDP
 );
 			`});
 			console.log(response.text);
-			progress.partialObserver(
-				50,
-				'Downloading plugins...'
-			);
+			progress( 20, 'Downloading plugins...' );
 			await installPluginsFromDirectory( client, ['glotpress-local'<?php if ( $plugin ) echo ", '$plugin'"; ?>] );
-			progress.partialObserver(
-				75,
-				'Making plugins translatable...'
-			);
+			progress( 15, 'Making plugins translatable...' );
 			<?php if ( $plugin || isset( $_GET['wp'] ) ) : ?>
 			response = await client.run({
 				code: '<' + '?' + 'php ' + `
@@ -147,6 +183,7 @@ print_r( GP::$rest->create_local_project( $request ) );
 			<?php else: ?>
 			await client.goTo('/wp-admin/admin.php?page=local-glotpress');
 			<?php endif; ?>
+			progress( 100, 'Finished' );
 // 			await client.goTo('/wp-admin/plugins.php');
 // 			console.log(response.text);
 //
