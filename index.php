@@ -3,18 +3,13 @@ if ( ! isset( $_GET['lang'] ) ) {
 	header( 'Location: /?lang=de' );
 	exit;
 }
-switch ( $_GET['lang'] ) {
-	case 'de':
-	case 'es':
-	case 'pt':
-	case 'pl':
-		$lang = $_GET['lang'] . '_' . strtoupper( $_GET['lang'] );
-		$locale_slug = 'default';
-		$lang_with_slug = $_GET['lang'] . '/' . $locale_slug;
-		break;
-	default:
-		die( 'Language not allowed yet.' );
-}
+$allowed_languages = array(
+	'de' => 'German',
+	'it' => 'Italian',
+	'es' => 'Spanish',
+	'pt' => 'Portuguese',
+	'pl' => 'Polish',
+);
 $allowed_plugins = array(
 	'activitypub' => 'options-general.php?page=activitypub',
 	'friends' => 'admin.php?page=friends',
@@ -22,6 +17,15 @@ $allowed_plugins = array(
 	'sierotki' => 'admin.php?page=iworks_orphan_index',
 	'chatrix' => 'admin.php?page=chatrix-settings',
 );
+
+if ( isset( $allowed_languages[ $_GET['lang'] ] ) ) {
+	$lang = $_GET['lang'] . '_' . strtoupper( $_GET['lang'] );
+	$locale_slug = 'default';
+	$lang_with_slug = $_GET['lang'] . '/' . $locale_slug;
+} else {
+	die( 'Language not allowed yet.' );
+}
+
 
 if ( isset( $_GET['plugin'] ) ) {
 	if ( isset( $allowed_plugins[ $_GET['plugin'] ] ) ) {
@@ -49,9 +53,9 @@ if ( isset( $_GET['plugin'] ) ) {
 				align-items: center;
 				justify-content: center;
 				background: white;
-				margin: .1em;
-				margin-top: 2em;
+				margin: 2em .1em;
 				border: 1px solid black;
+				height: 770px;
 			}
 			div#progressinner {
 				width: 600px;
@@ -64,9 +68,18 @@ if ( isset( $_GET['plugin'] ) ) {
 				width: 0;
 				height: 1em;
 				background: black;
+				transition: opacity linear 0.25s, width ease-in .5s;
 			}
 			div#progresstext {
 				text-align: center;
+				margin-top: .5em;
+			}
+			form#switcher {
+				position: absolute;
+				left: 1250px;
+			}
+			form#switcher * {
+				display: block;
 				margin-top: .5em;
 			}
 		</style>
@@ -78,6 +91,25 @@ if ( isset( $_GET['plugin'] ) ) {
 				<div id="progresstext"></div>
 			</div>
 		</div>
+		<form id="switcher">
+			<label>
+				Language:
+				<select name="lang">
+					<?php foreach ( $allowed_languages as $l => $english ) : ?>
+						<option value="<?php echo htmlspecialchars( $l ); ?>"<?php if ( $_GET['lang'] === $l ) echo ' selected="selected"'; ?>><?php echo htmlspecialchars( $english ); ?></option>
+					<?php endforeach; ?>
+				</select>
+			</label>
+			<label>
+				Plugin:
+				<select name="plugin">
+					<?php foreach ( array_keys( $allowed_plugins ) as $slug ) : ?>
+						<option value="<?php echo htmlspecialchars( $slug ); ?>"<?php if ( $plugin === $slug ) echo ' selected="selected"'; ?>><?php echo htmlspecialchars( $slug ); ?></option>
+					<?php endforeach; ?>
+				</select>
+			</label>
+			<button>Launch</button>
+		</form>
 		<iframe id="wp"></iframe>
 		<script type="importmap">
 			{
@@ -130,7 +162,7 @@ if ( isset( $_GET['plugin'] ) ) {
 			for ( const path in languages ) {
 				for ( const format of [ 'po', 'mo' ] ) {
 					progress( 5, 'Downloading languages... (' + languages[path] + '<?php echo $lang; ?>.' + format + ')' );
-					await fetch( '/translate-proxy?url=' + escape( 'https://translate.wordpress.org/projects/' + path + '/<?php echo $lang_with_slug; ?>/export-translations?format=' + format + ( path in filters ? filters[path] : '' ) ) )
+					await fetch( '/translate-proxy?<?php if ( isset( $_GET['refresh'] ) ) echo 'refresh&'; ?>url=' + escape( 'https://translate.wordpress.org/projects/' + path + '/<?php echo $lang_with_slug; ?>/export-translations?format=' + format + ( path in filters ? filters[path] : '' ) ) )
 					  .then(response => response.arrayBuffer() )
 					  .then(response => client.writeFile( '/wordpress/wp-content/languages/' + languages[path] + '<?php echo $lang; ?>.' + format, new Uint8Array(response) ) );
 				}
@@ -150,7 +182,7 @@ ENDP
 );
 			`});
 			console.log(response.text);
-			progress( 20, 'Downloading plugins...' );
+			progress( 20, 'Installing plugins...' );
 			await installPluginsFromDirectory( client, ['glotpress-local'<?php if ( $plugin ) echo ", '$plugin'"; ?>] );
 			progress( 15, 'Making plugins translatable...' );
 			<?php if ( $plugin || isset( $_GET['wp'] ) ) : ?>
@@ -184,9 +216,6 @@ print_r( GP::$rest->create_local_project( $request ) );
 			await client.goTo('/wp-admin/admin.php?page=local-glotpress');
 			<?php endif; ?>
 			progress( 100, 'Finished' );
-// 			await client.goTo('/wp-admin/plugins.php');
-// 			console.log(response.text);
-//
 		</script>
 	</body>
 </html>

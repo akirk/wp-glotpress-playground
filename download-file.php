@@ -1,8 +1,8 @@
 <?php
 
-function download_file($url) {
+function download_file( $url ) {
 	$cache = __DIR__ . '/cache/' . preg_replace( '#[^a-z0-9-]+#', '-', strtolower( substr( $url, 8 ) ) ) . '.' . crc32( $url );
-	if ( false&&file_exists( $cache . '.body' ) ) {
+	if ( ! isset( $_GET['refresh'] ) && file_exists( $cache . '.body' ) ) {
 		$headers = unserialize( file_get_contents( $cache . '.headers' ) );
 		$body = file_get_contents( $cache . '.body' );
 	} else {
